@@ -1,0 +1,19 @@
+{
+  "name": "tikto-backend",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.mjs",
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check src/app.mjs && node --check src/domain.mjs && node --check src/store.mjs && node --check src/notification-client.mjs && node --check src/routes/system.mjs && node --check src/routes/planner.mjs && node --check src/routes/notifications.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1161.0",
+    "@aws-sdk/lib-dynamodb": "^3.1161.0",
+    "express": "^5.1.0"
+  }
+}
