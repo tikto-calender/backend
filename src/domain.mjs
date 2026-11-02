@@ -18,8 +18,12 @@ export function createPlannerItem(collection, input) {
       id: randomUUID(),
       title: requireTitle(input.title),
       description: cleanText(input.description, 1000),
-      status: ["TODO", "IN_PROGRESS", "DONE"].includes(input.status) ? input.status : "TODO",
-      priority: ["LOW", "MEDIUM", "HIGH"].includes(input.priority) ? input.priority : "MEDIUM",
+      status: ["TODO", "IN_PROGRESS", "DONE"].includes(input.status)
+        ? input.status
+        : "TODO",
+      priority: ["LOW", "MEDIUM", "HIGH"].includes(input.priority)
+        ? input.priority
+        : "MEDIUM",
       dueAt: cleanText(input.dueAt, 40) || null,
       createdAt: now,
       updatedAt: now,
@@ -28,8 +32,10 @@ export function createPlannerItem(collection, input) {
 
   const startAt = cleanText(input.startAt, 40);
   const endAt = cleanText(input.endAt, 40);
-  if (!startAt || !endAt) throw new Error("Thời gian bắt đầu và kết thúc là bắt buộc.");
-  if (new Date(endAt) <= new Date(startAt)) throw new Error("Thời gian kết thúc phải sau thời gian bắt đầu.");
+  if (!startAt || !endAt)
+    throw new Error("Thời gian bắt đầu và kết thúc là bắt buộc.");
+  if (new Date(endAt) <= new Date(startAt))
+    throw new Error("Thời gian kết thúc phải sau thời gian bắt đầu.");
 
   return {
     id: randomUUID(),
@@ -37,7 +43,9 @@ export function createPlannerItem(collection, input) {
     description: cleanText(input.description, 1000),
     startAt,
     endAt,
-    color: ["mint", "blue", "orange", "pink"].includes(input.color) ? input.color : "mint",
+    color: ["mint", "blue", "orange", "pink"].includes(input.color)
+      ? input.color
+      : "mint",
     createdAt: now,
     updatedAt: now,
   };
@@ -45,17 +53,27 @@ export function createPlannerItem(collection, input) {
 
 export function patchPlannerItem(collection, item, input) {
   if (input.title !== undefined) item.title = requireTitle(input.title);
-  if (input.description !== undefined) item.description = cleanText(input.description, 1000);
+  if (input.description !== undefined)
+    item.description = cleanText(input.description, 1000);
 
   if (collection === "tasks") {
-    if (["TODO", "IN_PROGRESS", "DONE"].includes(input.status)) item.status = input.status;
-    if (["LOW", "MEDIUM", "HIGH"].includes(input.priority)) item.priority = input.priority;
-    if (input.dueAt !== undefined) item.dueAt = cleanText(input.dueAt, 40) || null;
+    if (["TODO", "IN_PROGRESS", "DONE"].includes(input.status))
+      item.status = input.status;
+    if (["LOW", "MEDIUM", "HIGH"].includes(input.priority))
+      item.priority = input.priority;
+    if (input.dueAt !== undefined)
+      item.dueAt = cleanText(input.dueAt, 40) || null;
   } else {
-    if (input.startAt !== undefined) item.startAt = cleanText(input.startAt, 40);
+    if (input.startAt !== undefined)
+      item.startAt = cleanText(input.startAt, 40);
     if (input.endAt !== undefined) item.endAt = cleanText(input.endAt, 40);
-    if (["mint", "blue", "orange", "pink"].includes(input.color)) item.color = input.color;
-    if (!item.startAt || !item.endAt || new Date(item.endAt) <= new Date(item.startAt)) {
+    if (["mint", "blue", "orange", "pink"].includes(input.color))
+      item.color = input.color;
+    if (
+      !item.startAt ||
+      !item.endAt ||
+      new Date(item.endAt) <= new Date(item.startAt)
+    ) {
       throw new Error("Khoảng thời gian sự kiện không hợp lệ.");
     }
   }

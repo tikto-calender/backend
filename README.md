@@ -23,3 +23,14 @@ On EKS, the `tikto-app` ServiceAccount receives temporary credentials through EK
 - System: `/api/health`, `/api/runtime`, `/api/status`
 - Planner: `/api/overview`, `/api/tasks`, `/api/events`
 - Notifications: `/api/notifications`, `/api/notifications/test`
+
+## CI/CD
+
+Pull requests targeting `dev` or `main` run formatting, lint, unit tests, coverage and SonarQube analysis. Pushes to those branches repeat the quality gate, build the container, block HIGH/CRITICAL fixable vulnerabilities with Trivy, then push an immutable image to Amazon ECR.
+
+Configure these GitHub organization or repository settings:
+
+- Variable `AWS_BUILD_ROLE_ARN`: Terraform output `github_build_role_arn` from the shared stack.
+- Variable `AWS_REGION`: `ap-southeast-2`.
+- Variable `SONAR_HOST_URL`: URL of the SonarQube server.
+- Secret `SONAR_TOKEN`: project analysis token.

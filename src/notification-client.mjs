@@ -1,6 +1,14 @@
 const configuredUrl = process.env.NOTIFICATION_SERVICE_URL?.trim();
 const baseUrl = configuredUrl ? configuredUrl.replace(/\/+$/, "") : null;
-const timeoutMs = Number.parseInt(process.env.NOTIFICATION_SERVICE_TIMEOUT_MS ?? "2500", 10);
+const timeoutMs = Number.parseInt(
+  process.env.NOTIFICATION_SERVICE_TIMEOUT_MS ?? "2500",
+  10,
+);
+const disconnectedAccount = () => ({
+  connected: false,
+  provider: null,
+  name: null,
+});
 
 export class NotificationServiceError extends Error {
   constructor(message, status = 502) {
@@ -11,53 +19,76 @@ export class NotificationServiceError extends Error {
 }
 
 async function request(path, options = {}) {
-  if (!baseUrl) throw new NotificationServiceError("Notification Service chưa được cấu hình.", 503);
+  if (!baseUrl)
+    throw new NotificationServiceError(
+      "Notification Service chưa được cấu hình.",
+      503,
+    );
 
   let response;
   try {
     response = await fetch(`${baseUrl}${path}`, {
       ...options,
-      headers: options.body ? { "Content-Type": "application/json", ...options.headers } : options.headers,
+      headers: options.body
+        ? { "Content-Type": "application/json", ...options.headers }
+        : options.headers,
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    const message = error?.name === "TimeoutError"
-      ? "Notification Service phản hồi quá thời gian."
-      : "Không thể kết nối Notification Service.";
+    const message =
+      error?.name === "TimeoutError"
+        ? "Notification Service phản hồi quá thời gian."
+        : "Không thể kết nối Notification Service.";
     throw new NotificationServiceError(message, 503);
   }
 
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new NotificationServiceError(result.error ?? "Notification Service trả về lỗi.", response.status);
+    throw new NotificationServiceError(
+      result.error ?? "Notification Service trả về lỗi.",
+      response.status,
+    );
   }
   return result.data ?? result;
 }
 
 export async function checkNotificationHealth() {
-  if (!baseUrl) return { status: "disabled", service: "tikto-notification", latencyMs: null };
+  if (!baseUrl)
+    return {
+      status: "disabled",
+      service: "tikto-notification",
+      version: null,
+      account: disconnectedAccount(),
+      latencyMs: null,
+    };
   const startedAt = performance.now();
   try {
     const result = await request("/health");
     return {
       status: result.status === "ok" ? "ok" : "degraded",
       service: result.service ?? "tikto-notification",
+      version: result.version ?? null,
       backend: result.backend ?? "unknown",
+      account: result.account ?? disconnectedAccount(),
       latencyMs: Math.round(performance.now() - startedAt),
     };
   } catch {
     return {
       status: "down",
       service: "tikto-notification",
+      version: null,
       backend: "unknown",
+      account: disconnectedAccount(),
       latencyMs: Math.round(performance.now() - startedAt),
     };
   }
 }
 
 export const listNotifications = () => request("/notifications");
-export const createNotification = (input) => request("/notifications", { method: "POST", body: JSON.stringify(input) });
-export const cancelNotification = (id) => request(`/notifications/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const createNotification = (input) =>
+  request("/notifications", { method: "POST", body: JSON.stringify(input) });
+export const cancelNotification = (id) =>
+  request(`/notifications/${encodeURIComponent(id)}`, { method: "DELETE" });
 
 export function notificationConfiguration() {
   return { enabled: Boolean(baseUrl), url: baseUrl, timeoutMs };
