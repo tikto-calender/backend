@@ -1,12 +1,19 @@
+import { createRequire } from "node:module";
+
 import { Router } from "express";
 
-import { checkNotificationHealth, notificationConfiguration } from "../notification-client.mjs";
+import {
+  checkNotificationHealth,
+  notificationConfiguration,
+} from "../notification-client.mjs";
 import { checkStoreHealth, storeBackend } from "../store.mjs";
+
+const require = createRequire(import.meta.url);
+const { version: appVersion } = require("../../package.json");
 
 const runtime = Object.freeze({
   environment: process.env.APP_ENV ?? "local",
-  version: process.env.APP_VERSION ?? "1.1.0",
-  image: process.env.IMAGE_TAG ?? "local",
+  version: appVersion,
   store: storeBackend,
   notification: notificationConfiguration(),
 });
@@ -27,8 +34,17 @@ export function systemRouter() {
       checkStoreHealth(),
       checkNotificationHealth(),
     ]);
-    const status = database.status === "ok" && ["ok", "disabled"].includes(notification.status) ? "ok" : "degraded";
-    response.json({ data: { status, database, notification } });
+    const status =
+      database.status === "ok" &&
+      ["ok", "disabled"].includes(notification.status)
+        ? "ok"
+        : "degraded";
+    const backend = {
+      status: "ok",
+      service: "tikto-backend",
+      version: appVersion,
+    };
+    response.json({ data: { status, backend, database, notification } });
   });
 
   return router;
