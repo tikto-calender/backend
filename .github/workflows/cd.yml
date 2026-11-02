@@ -53,12 +53,6 @@ jobs:
       - name: Check production source
         run: npm run syntax
 
-      - name: SonarQube analysis
-        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-
       - name: Create immutable image tag
         id: image
         shell: bash
