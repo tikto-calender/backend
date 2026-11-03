@@ -5,6 +5,7 @@ import {
   cancelNotification,
   createNotification,
   listNotifications,
+  sendTestNotification,
 } from "../notification-client.mjs";
 
 export function notificationsRouter() {
@@ -21,15 +22,11 @@ export function notificationsRouter() {
   });
 
   router.post("/notifications/test", async (request, response) => {
-    const created = await createNotification({
-      targetType: "SYSTEM",
-      targetId: "manual-test",
-      channel: "LOG",
-      message:
-        cleanText(request.body?.message, 500) || "TikTo test notification",
-      scheduledAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+    const message =
+      cleanText(request.body?.message, 500) || "TikTo test notification";
+    response.status(201).json({
+      data: await sendTestNotification(message),
     });
-    response.status(201).json({ data: created });
   });
 
   router.delete("/notifications/:id", async (request, response) => {
