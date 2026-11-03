@@ -87,6 +87,11 @@ export async function checkNotificationHealth() {
 export const listNotifications = () => request("/notifications");
 export const createNotification = (input) =>
   request("/notifications", { method: "POST", body: JSON.stringify(input) });
+export const sendTestNotification = (message) =>
+  request("/notifications/test", {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
 export const cancelNotification = (id) =>
   request(`/notifications/${encodeURIComponent(id)}`, { method: "DELETE" });
 

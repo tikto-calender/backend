@@ -22,7 +22,7 @@ On EKS, the `tikto-app` ServiceAccount receives temporary credentials through EK
 
 - System: `/api/health`, `/api/runtime`, `/api/status`
 - Planner: `/api/overview`, `/api/tasks`, `/api/events`
-- Notifications: `/api/notifications`, `/api/notifications/test`
+- Notifications: `/api/notifications`, `/api/notifications/test` (gửi ngay một notification kiểm tra qua Notification Service)
 
 ## CI/CD
 
