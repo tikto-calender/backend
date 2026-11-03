@@ -4,20 +4,88 @@ on:
   pull_request:
     branches:
       - dev
-      - main
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect source changes
+    runs-on: ubuntu-latest
+    outputs:
+      source: ${{ steps.filter.outputs.source }}
+      dependencies: ${{ steps.filter.outputs.dependencies }}
+    steps:
+      - name: Detect source changes
+        id: filter
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "source=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          mapfile -t files < <(
+            gh api --paginate \
+              "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" \
+              --jq '.[].filename'
+          )
+
+          source=false
+          dependencies=false
+          for file in "${files[@]}"; do
+            case "${file}" in
+              package.json|package-lock.json)
+                source=true
+                dependencies=true
+                ;;
+              src/*|test/*|server.mjs|data/*|eslint.config.*|Dockerfile|.env.example|.github/workflows/ci.yml)
+                source=true
+                ;;
+            esac
+          done
+
+          echo "source=${source}" >> "${GITHUB_OUTPUT}"
+          echo "dependencies=${dependencies}" >> "${GITHUB_OUTPUT}"
+          echo "Source changes: ${source}" >> "${GITHUB_STEP_SUMMARY}"
+
   quality:
     name: Format, lint, test and syntax
+    needs: changes
+    if: needs.changes.outputs.source == 'true'
     uses: tikto-calender/reusable-workflow/.github/workflows/node-ci.yml@main
     with:
       install-command: npm ci --ignore-scripts
       build-command: npm run syntax
+
+  dependency-review:
+    name: Audit production dependencies
+    needs: changes
+    if: needs.changes.outputs.dependencies == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Audit production dependency lockfile
+        run: npm audit --omit=dev --audit-level=high

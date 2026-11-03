@@ -26,9 +26,15 @@ On EKS, the `tikto-app` ServiceAccount receives temporary credentials through EK
 
 ## CI/CD
 
-Pull requests targeting `dev` or `main` run formatting, lint, unit tests and coverage. Pushes to those branches repeat the quality gate, build the container, block HIGH/CRITICAL fixable vulnerabilities with Trivy, then push an immutable image to Amazon ECR. SonarQube analysis is handled automatically outside the GitHub Actions workflow.
+Open pull requests from working branches to `dev`. CI checks the prospective merge, and every eligible same-repository pull request targeting `dev` is squash-merged after CI succeeds. Documentation-only changes skip the expensive format, lint, test and syntax job.
+
+Merges to `dev` publish an immutable `dev-<commit>` image. Production has no `main` promotion branch: run the **Release production** workflow from `dev` with a new semantic version such as `v1.2.3`. The workflow verifies the source, promotes the exact development image to that version after approval in the protected `prod` environment, scans it again, and creates the immutable GitHub release. SonarQube analysis is handled automatically outside GitHub Actions.
 
 Configure these GitHub organization or repository settings:
 
+- Make `dev` the default branch and protect it with the `CI` checks required and branches required to be up to date.
+- Enable repository auto-merge.
+- Allow GitHub Actions workflow permissions to read and write so the auto-merge job can update pull requests.
 - Variable `AWS_BUILD_ROLE_ARN`: Terraform output `github_build_role_arn` from the shared stack.
 - Variable `AWS_REGION`: `ap-southeast-2`.
+- Protect the `prod` GitHub Environment with required reviewers.
