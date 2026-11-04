@@ -1,103 +1,23 @@
-name: Publish development image
-
+name: Deploy development
 on:
   push:
     branches:
       - dev
-    paths:
-      - src/**
-      - test/**
-      - server.mjs
-      - data/**
-      - package.json
-      - package-lock.json
-      - eslint.config.*
-      - Dockerfile
-      - .env.example
-      - .github/workflows/cd.yml
-
 permissions:
   contents: read
-
+  id-token: write
 concurrency:
-  group: publish-dev
+  group: deploy-dev
   cancel-in-progress: false
-
 jobs:
-  quality:
-    name: Format, lint, test and syntax
-    uses: tikto-calender/reusable-workflow/.github/workflows/node-ci.yml@main
-    with:
-      install-command: npm ci --ignore-scripts
-      build-command: npm run syntax
-
   publish:
-    name: Build, scan and publish immutable image
-    needs: quality
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      AWS_REGION: ${{ vars.AWS_REGION || 'ap-southeast-2' }}
-      ECR_REPOSITORY: tikto/backend
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Create immutable image tag
-        id: image
-        shell: bash
-        run: |
-          tag="dev-${GITHUB_SHA::12}"
-          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
-          echo "local=${ECR_REPOSITORY}:${tag}" >> "${GITHUB_OUTPUT}"
-
-      - name: Build container image
-        run: docker build --tag "${{ steps.image.outputs.local }}" .
-
-      - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: ${{ steps.image.outputs.local }}
-          format: table
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
-
-      - name: Configure AWS credentials with GitHub OIDC
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
-        with:
-          role-to-assume: ${{ vars.AWS_BUILD_ROLE_ARN }}
-          role-session-name: backend-${{ github.run_id }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Log in to Amazon ECR
-        id: ecr
-        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
-
-      - name: Push immutable image
-        id: push
-        shell: bash
-        env:
-          REGISTRY: ${{ steps.ecr.outputs.registry }}
-          IMAGE_TAG: ${{ steps.image.outputs.tag }}
-          LOCAL_IMAGE: ${{ steps.image.outputs.local }}
-        run: |
-          remote_image="${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-          docker tag "${LOCAL_IMAGE}" "${remote_image}"
-          if aws ecr describe-images \
-            --repository-name "${ECR_REPOSITORY}" \
-            --image-ids "imageTag=${IMAGE_TAG}" >/dev/null 2>&1; then
-            echo "Image already exists; keeping the immutable tag."
-          else
-            docker push "${remote_image}"
-          fi
-          echo "image=${remote_image}" >> "${GITHUB_OUTPUT}"
-
-      - name: Publish summary
-        run: echo "Published \`${{ steps.push.outputs.image }}\`" >> "${GITHUB_STEP_SUMMARY}"
+    uses: tikto-calender/reusable-workflow/.github/workflows/container-publish.yml@main
+    with:
+      repository: tikto/backend
+  deploy:
+    needs: publish
+    uses: tikto-calender/reusable-workflow/.github/workflows/ecs-deploy.yml@main
+    with:
+      image: ${{ needs.publish.outputs.image }}
+      container: backend
+      environment: dev
