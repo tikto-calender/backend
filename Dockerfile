@@ -6,7 +6,10 @@ ENV NODE_ENV=production \
     PORT=3000
 
 COPY --chown=node:node package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN apk upgrade --no-cache \
+    && npm ci --omit=dev \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 COPY --chown=node:node src ./src
 COPY --chown=node:node data ./data
