@@ -1,23 +1,22 @@
 name: Deploy development
 on:
   push:
-    branches:
-      - dev
+    branches: [dev, 'feat/**']
+  workflow_dispatch:
+
 permissions:
   contents: read
-  id-token: write
+  packages: write
+
 concurrency:
-  group: deploy-dev
+  group: gitops-dev
   cancel-in-progress: false
+
 jobs:
   publish:
-    uses: tikto-calender/reusable-workflow/.github/workflows/container-publish.yml@main
+    uses: tikto-calender/reusable-workflow/.github/workflows/ghcr-dev.yml@main
     with:
-      repository: tikto/backend
-  deploy:
-    needs: publish
-    uses: tikto-calender/reusable-workflow/.github/workflows/ecs-deploy.yml@main
-    with:
-      image: ${{ needs.publish.outputs.image }}
-      container: backend
-      environment: dev
+      component: backend
+      gitops-repository: ${{ vars.GITOPS_REPOSITORY || 'tikto-calender/manifest' }}
+    secrets:
+      GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
