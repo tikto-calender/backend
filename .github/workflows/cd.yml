@@ -1,0 +1,18 @@
+name: Deploy Dev
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    uses: tikto-calender/reusable-workflow/.github/workflows/cd-dev.yml@dbdf77356c14e76c1320f334cd0c18fcff47b659
+    with:
+      component: backend
+      gitops-repository: ${{ vars.GITOPS_REPOSITORY || 'tikto-calender/manifest' }}
+    secrets:
+      GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
