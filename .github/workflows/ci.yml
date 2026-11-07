@@ -1,0 +1,46 @@
+name: CI
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".env.example"
+      - "sonar-project.properties"
+      - "src/**"
+      - "test/**"
+      - "data/**"
+      - "server.mjs"
+      - "package*.json"
+      - "eslint.config.*"
+      - ".prettier*"
+  push:
+    branches: ["feat/**"]
+    paths:
+      - ".github/workflows/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".env.example"
+      - "sonar-project.properties"
+      - "src/**"
+      - "test/**"
+      - "data/**"
+      - "server.mjs"
+      - "package*.json"
+      - "eslint.config.*"
+      - ".prettier*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    uses: tikto-calender/reusable-workflow/.github/workflows/ci-node.yml@dbdf77356c14e76c1320f334cd0c18fcff47b659
+    with:
+      install-command: npm ci --ignore-scripts
+      build-command: npm run syntax
