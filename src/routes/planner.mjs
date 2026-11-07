@@ -23,14 +23,18 @@ export function plannerRouter() {
     });
 
     router.patch(`/${collection}/:id`, async (request, response) => {
-      const updated = await updateItem(collection, request.params.id, (item) => patchPlannerItem(collection, item, request.body ?? {}));
-      if (!updated) return response.status(404).json({ error: "Không tìm thấy dữ liệu." });
+      const updated = await updateItem(collection, request.params.id, (item) =>
+        patchPlannerItem(collection, item, request.body ?? {}),
+      );
+      if (!updated)
+        return response.status(404).json({ error: "Không tìm thấy dữ liệu." });
       return response.json({ data: updated });
     });
 
     router.delete(`/${collection}/:id`, async (request, response) => {
       const deleted = await deleteItem(collection, request.params.id);
-      if (!deleted) return response.status(404).json({ error: "Không tìm thấy dữ liệu." });
+      if (!deleted)
+        return response.status(404).json({ error: "Không tìm thấy dữ liệu." });
       return response.json({ data: { id: request.params.id } });
     });
   }

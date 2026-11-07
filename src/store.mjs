@@ -1,5 +1,11 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,24 +17,35 @@ const temporaryStorePath = path.join(dataDirectory, "store.json.tmp");
 const collections = new Set(["tasks", "events"]);
 const emptyStore = () => ({ tasks: [], events: [] });
 
-export const storeBackend = process.env.STORE_BACKEND?.toLowerCase() === "dynamodb" ? "dynamodb" : "local";
+export const storeBackend =
+  process.env.STORE_BACKEND?.toLowerCase() === "dynamodb"
+    ? "dynamodb"
+    : "local";
 
 const tableName = process.env.DYNAMODB_TABLE;
 const environment = process.env.APP_ENV ?? "local";
-const dynamo = storeBackend === "dynamodb"
-  ? DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION ?? "ap-southeast-1" }), {
-      marshallOptions: { removeUndefinedValues: true },
-    })
-  : null;
+const dynamo =
+  storeBackend === "dynamodb"
+    ? DynamoDBDocumentClient.from(
+        new DynamoDBClient({
+          region: process.env.AWS_REGION ?? "ap-southeast-2",
+        }),
+        {
+          marshallOptions: { removeUndefinedValues: true },
+        },
+      )
+    : null;
 
 let writeQueue = Promise.resolve();
 
 function assertCollection(collection) {
-  if (!collections.has(collection)) throw new Error(`Unsupported collection: ${collection}`);
+  if (!collections.has(collection))
+    throw new Error(`Unsupported collection: ${collection}`);
 }
 
 function assertDynamoConfiguration() {
-  if (!tableName) throw new Error("DYNAMODB_TABLE is required when STORE_BACKEND=dynamodb.");
+  if (!tableName)
+    throw new Error("DYNAMODB_TABLE is required when STORE_BACKEND=dynamodb.");
 }
 
 function scopeFor(collection) {
@@ -57,7 +74,11 @@ async function readLocalStore() {
 
 async function saveLocalStore(store) {
   await mkdir(dataDirectory, { recursive: true });
-  await writeFile(temporaryStorePath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+  await writeFile(
+    temporaryStorePath,
+    `${JSON.stringify(store, null, 2)}\n`,
+    "utf8",
+  );
   await rename(temporaryStorePath, storePath);
 }
 
@@ -79,13 +100,15 @@ async function readDynamoCollection(collection) {
   let exclusiveStartKey;
 
   do {
-    const result = await dynamo.send(new QueryCommand({
-      TableName: tableName,
-      KeyConditionExpression: "#scope = :scope",
-      ExpressionAttributeNames: { "#scope": "scope" },
-      ExpressionAttributeValues: { ":scope": scopeFor(collection) },
-      ExclusiveStartKey: exclusiveStartKey,
-    }));
+    const result = await dynamo.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: "#scope = :scope",
+        ExpressionAttributeNames: { "#scope": "scope" },
+        ExpressionAttributeValues: { ":scope": scopeFor(collection) },
+        ExclusiveStartKey: exclusiveStartKey,
+      }),
+    );
     items.push(...(result.Items ?? []).map(withoutDynamoKeys));
     exclusiveStartKey = result.LastEvaluatedKey;
   } while (exclusiveStartKey);
@@ -113,17 +136,27 @@ export async function checkStoreHealth() {
       await readLocalStore();
     } else {
       assertDynamoConfiguration();
-      await dynamo.send(new QueryCommand({
-        TableName: tableName,
-        KeyConditionExpression: "#scope = :scope",
-        ExpressionAttributeNames: { "#scope": "scope" },
-        ExpressionAttributeValues: { ":scope": scopeFor("tasks") },
-        Limit: 1,
-      }));
+      await dynamo.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: "#scope = :scope",
+          ExpressionAttributeNames: { "#scope": "scope" },
+          ExpressionAttributeValues: { ":scope": scopeFor("tasks") },
+          Limit: 1,
+        }),
+      );
     }
-    return { status: "ok", backend: storeBackend, latencyMs: Math.round(performance.now() - startedAt) };
+    return {
+      status: "ok",
+      backend: storeBackend,
+      latencyMs: Math.round(performance.now() - startedAt),
+    };
   } catch {
-    return { status: "down", backend: storeBackend, latencyMs: Math.round(performance.now() - startedAt) };
+    return {
+      status: "down",
+      backend: storeBackend,
+      latencyMs: Math.round(performance.now() - startedAt),
+    };
   }
 }
 
@@ -138,12 +171,15 @@ export async function createItem(collection, item) {
   }
 
   assertDynamoConfiguration();
-  await dynamo.send(new PutCommand({
-    TableName: tableName,
-    Item: { ...item, scope: scopeFor(collection) },
-    ConditionExpression: "attribute_not_exists(#scope) AND attribute_not_exists(#id)",
-    ExpressionAttributeNames: { "#scope": "scope", "#id": "id" },
-  }));
+  await dynamo.send(
+    new PutCommand({
+      TableName: tableName,
+      Item: { ...item, scope: scopeFor(collection) },
+      ConditionExpression:
+        "attribute_not_exists(#scope) AND attribute_not_exists(#id)",
+      ExpressionAttributeNames: { "#scope": "scope", "#id": "id" },
+    }),
+  );
   return item;
 }
 
@@ -160,11 +196,13 @@ export async function deleteItem(collection, id) {
   }
 
   assertDynamoConfiguration();
-  const result = await dynamo.send(new DeleteCommand({
-    TableName: tableName,
-    Key: { scope: scopeFor(collection), id },
-    ReturnValues: "ALL_OLD",
-  }));
+  const result = await dynamo.send(
+    new DeleteCommand({
+      TableName: tableName,
+      Key: { scope: scopeFor(collection), id },
+      ReturnValues: "ALL_OLD",
+    }),
+  );
   return Boolean(result.Attributes);
 }
 
@@ -182,7 +220,9 @@ export async function updateItem(collection, id, update) {
 
   assertDynamoConfiguration();
   const key = { scope: scopeFor(collection), id };
-  const result = await dynamo.send(new GetCommand({ TableName: tableName, Key: key }));
+  const result = await dynamo.send(
+    new GetCommand({ TableName: tableName, Key: key }),
+  );
   const existing = withoutDynamoKeys(result.Item);
   if (!existing) return null;
 
@@ -190,14 +230,18 @@ export async function updateItem(collection, id, update) {
   const next = { ...existing };
   await update(next);
 
-  await dynamo.send(new PutCommand({
-    TableName: tableName,
-    Item: { ...next, ...key },
-    ConditionExpression: expectedUpdatedAt
-      ? "#updatedAt = :expectedUpdatedAt"
-      : "attribute_not_exists(#updatedAt)",
-    ExpressionAttributeNames: { "#updatedAt": "updatedAt" },
-    ExpressionAttributeValues: expectedUpdatedAt ? { ":expectedUpdatedAt": expectedUpdatedAt } : undefined,
-  }));
+  await dynamo.send(
+    new PutCommand({
+      TableName: tableName,
+      Item: { ...next, ...key },
+      ConditionExpression: expectedUpdatedAt
+        ? "#updatedAt = :expectedUpdatedAt"
+        : "attribute_not_exists(#updatedAt)",
+      ExpressionAttributeNames: { "#updatedAt": "updatedAt" },
+      ExpressionAttributeValues: expectedUpdatedAt
+        ? { ":expectedUpdatedAt": expectedUpdatedAt }
+        : undefined,
+    }),
+  );
   return next;
 }
