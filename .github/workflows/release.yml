@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  packages: read
 
 concurrency:
   group: finalize-release
@@ -17,10 +18,10 @@ concurrency:
 
 jobs:
   finalize:
-    uses: tikto-calender/reusable-workflow/.github/workflows/finalize-release.yml@fb91f225096ec3df8fc0beff53662e6b87414ccc
+    uses: tikto-calender/reusable-workflow/.github/workflows/finalize-release.yml@dbdf77356c14e76c1320f334cd0c18fcff47b659
     with:
       component: backend
       version: ${{ inputs.version }}
       gitops-repository: ${{ vars.GITOPS_REPOSITORY || 'tikto-calender/manifest' }}
     secrets:
-      MANIFEST_READ_TOKEN: ${{ secrets.MANIFEST_READ_TOKEN }}
+      MANIFEST_READ_TOKEN: ${{ secrets.MANIFEST_READ_TOKEN || secrets.GITOPS_TOKEN }}
