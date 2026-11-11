@@ -1,8 +1,15 @@
 name: Deploy Dev
 on:
-  workflow_dispatch:
   push:
-    branches: [dev]
+    branches:
+      - dev
+    paths:
+      - "Dockerfile"
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/cd.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read

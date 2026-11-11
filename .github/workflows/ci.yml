@@ -1,35 +1,9 @@
 name: CI
 on:
   pull_request:
-    branches: [dev]
-    paths:
-      - ".github/workflows/**"
-      - "Dockerfile"
-      - ".dockerignore"
-      - ".env.example"
-      - "sonar-project.properties"
-      - "src/**"
-      - "test/**"
-      - "data/**"
-      - "server.mjs"
-      - "package*.json"
-      - "eslint.config.*"
-      - ".prettier*"
-  push:
-    branches: ["feat/**"]
-    paths:
-      - ".github/workflows/**"
-      - "Dockerfile"
-      - ".dockerignore"
-      - ".env.example"
-      - "sonar-project.properties"
-      - "src/**"
-      - "test/**"
-      - "data/**"
-      - "server.mjs"
-      - "package*.json"
-      - "eslint.config.*"
-      - ".prettier*"
+    branches:
+      - dev
+      - feat/*
 
 permissions:
   contents: read

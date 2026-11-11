@@ -14,6 +14,7 @@ const { version: appVersion } = require("../../package.json");
 const runtime = Object.freeze({
   environment: process.env.APP_ENV ?? "local",
   version: appVersion,
+  ...(process.env.RELEASE_IMAGE && { image: process.env.RELEASE_IMAGE }),
   store: storeBackend,
   notification: notificationConfiguration(),
 });
