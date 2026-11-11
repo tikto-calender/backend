@@ -9,11 +9,13 @@ on:
 
 permissions:
   contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
-  checks:
+  quality:
     uses: tikto-calender/reusable-workflow/.github/workflows/ci-node.yml@main
     with:
       install-command: npm ci --ignore-scripts
