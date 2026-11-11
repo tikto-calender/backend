@@ -4,14 +4,12 @@ on:
     branches:
       - dev
     paths:
-      - 'dockerfile'
-      - 'src/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/cd.yml'
+      - "Dockerfile"
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/cd.yml"
   workflow_dispatch:
-  push:
-    branches: [dev]
 
 permissions:
   contents: read

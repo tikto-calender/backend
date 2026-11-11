@@ -4,8 +4,6 @@ on:
     branches:
       - dev
       - feat/*
-    paths:
-      
 
 permissions:
   contents: read
