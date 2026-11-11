@@ -1,98 +1,106 @@
 # TikTo Backend
 
-Express REST API cho ứng dụng TikTo Calendar: quản lý công việc (tasks), sự kiện (events), kiểm tra sức khỏe hệ thống và kết nối với Notification Service (Telegram).
+Express-based REST API for TikTo Calendar. Manages tasks, calendar events, system runtime diagnostics, and forwards notification alerts to the Telegram Notification Service.
 
 ---
 
-## 🛠️ Chạy Local (Local Development)
+## 🛠️ Local Development
 
-Yêu cầu Node.js `>= 22`.
+### Prerequisites
+* **Node.js** `>= 22`
+* **npm** `>= 10`
 
+### Installation & Startup
 ```bash
+# 1. Install dependencies
 npm install
+
+# 2. Start development server with live-reloading
 npm run dev
 ```
 
-Server sẽ lắng nghe tại `http://localhost:3000`.
+The server listens on `http://localhost:3000`.
 
 ---
 
-## ⚙️ Cấu hình môi trường (.env)
+## ⚙️ Environment Configuration (`.env`)
 
-Tạo file `.env` từ file mẫu `.env.example`:
+Create a `.env` file based on the provided `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Các biến môi trường chính:
-```dotenv
-PORT=3000
-APP_ENV=local
+### Configuration Parameters
 
-# Kiểu lưu trữ database (local hoặc dynamodb)
-STORE_BACKEND=local
-AWS_REGION=ap-southeast-2
-DYNAMODB_TABLE=tikto-app
-
-# Kết nối sang Notification Service
-NOTIFICATION_SERVICE_URL=http://localhost:8000
-NOTIFICATION_SERVICE_TIMEOUT_MS=2500
-```
-
-* `STORE_BACKEND=local`: Dữ liệu lưu trong file `data/store.json`.
-* `STORE_BACKEND=dynamodb`: Sử dụng AWS DynamoDB qua IAM Role / Pod Identity.
-* `NOTIFICATION_SERVICE_URL`: URL của Notification Service để Backend gọi sang kiểm tra sức khỏe và gửi thông báo Telegram.
-
----
-
-## 📡 Chi tiết danh sách API (API Endpoints)
-
-Tất cả các route đều bắt đầu bằng tiền tố `/api`.
-
-### 1. Hệ thống & Sức khỏe (System)
-| Method | Endpoint | Mô tả |
+| Variable | Default | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/health` | Kiểm tra nhanh Backend còn sống không. |
-| `GET` | `/api/runtime` | Xem thông tin runtime, phiên bản, database backend đang dùng. |
-| `GET` | `/api/status` | **Kiểm tra toàn diện**: Kết nối DB và gọi sang Notification Service đo độ trễ (`latencyMs`). |
+| `PORT` | `3000` | HTTP port the server listens on |
+| `APP_ENV` | `local` | Environment identifier (`local`, `dev`, `prod`) |
+| `STORE_BACKEND` | `local` | Storage engine: `local` (file-based JSON) or `dynamodb` (AWS DynamoDB) |
+| `AWS_REGION` | `ap-southeast-2` | AWS region when using DynamoDB |
+| `DYNAMODB_TABLE` | `tikto-app` | DynamoDB table name |
+| `NOTIFICATION_SERVICE_URL` | `http://localhost:8000` | URL of the Notification Service |
+| `NOTIFICATION_SERVICE_TIMEOUT_MS`| `2500` | Request timeout for Notification Service calls (in milliseconds) |
 
-### 2. Quản lý công việc & sự kiện (Tasks & Events)
-| Method | Endpoint | Mô tả | Request Body mẫu |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/overview` | Lấy toàn bộ danh sách tasks và events. | Không |
-| `GET` | `/api/tasks` | Lấy danh sách các task. | Không |
-| `POST` | `/api/tasks` | Tạo mới một task. | `{"title": "Họp team", "dueDate": "2026-11-08"}` |
-| `PATCH`| `/api/tasks/:id` | Cập nhật task theo ID. | `{"completed": true}` |
-| `DELETE`| `/api/tasks/:id`| Xóa task theo ID. | Không |
-| `GET` | `/api/events` | Lấy danh sách sự kiện. | Không |
-| `POST` | `/api/events` | Tạo mới một event. | `{"title": "Sinh nhật", "date": "2026-11-10"}` |
-| `PATCH`| `/api/events/:id`| Cập nhật event theo ID. | `{"title": "Tiệc sinh nhật"}` |
-| `DELETE`| `/api/events/:id`| Xóa event theo ID. | Không |
-
-### 3. Thông báo (Notifications - Forward sang Notification Service)
-| Method | Endpoint | Mô tả | Request Body mẫu |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/notifications` | Lấy lịch sử thông báo từ Notification Service. | Không |
-| `POST`| `/api/notifications` | Lên lịch thông báo mới. | `{"message": "Nhắc việc", "scheduledAt": "2026-11-08T09:00:00Z"}` |
-| `POST`| `/api/notifications/test` | **Gửi ngay một tin nhắn test** sang Telegram qua Notification Service. | `{"message": "Tin nhắn thử nghiệm"}` |
-| `DELETE`| `/api/notifications/:id` | Hủy thông báo theo ID. | Không |
+> [!NOTE]
+> * When `STORE_BACKEND=local`, data is persisted in `data/store.json`.
+> * When deployed on Kubernetes (EKS), the `tikto-app` ServiceAccount uses EKS Pod Identity for temporary IAM credentials. Never store static AWS keys in repository files or container images.
 
 ---
 
-## 🧪 Kiểm tra mã nguồn (Testing & Quality)
+## 📡 REST API Reference
+
+All application endpoints are prefixed with `/api`.
+
+### 1. System & Diagnostics
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/health` | Fast healthcheck returning service status and runtime info. |
+| `GET` | `/api/runtime` | Returns runtime configuration (environment, version, store backend). |
+| `GET` | `/api/status` | **Full system diagnostic**: Validates database connectivity and actively probes Notification Service, reporting response latency (`latencyMs`). |
+
+### 2. Planner (Tasks & Events)
+| Method | Endpoint | Description | Sample Request Body |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/overview` | Retrieves all tasks and events in a single payload. | *None* |
+| `GET` | `/api/tasks` | Lists all tasks. | *None* |
+| `POST` | `/api/tasks` | Creates a new task. | `{"title": "Sprint Review", "dueDate": "2026-11-10"}` |
+| `PATCH` | `/api/tasks/:id` | Updates an existing task by ID. | `{"completed": true}` |
+| `DELETE` | `/api/tasks/:id` | Deletes a task by ID. | *None* |
+| `GET` | `/api/events` | Lists all calendar events. | *None* |
+| `POST` | `/api/events` | Creates a new event. | `{"title": "Team Birthday", "date": "2026-11-12"}` |
+| `PATCH` | `/api/events/:id`| Updates an event by ID. | `{"title": "Team Birthday Dinner"}` |
+| `DELETE` | `/api/events/:id`| Deletes an event by ID. | *None* |
+
+### 3. Notifications (Forwarded to Notification Service)
+| Method | Endpoint | Description | Sample Request Body |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/notifications` | Fetches notification history from Notification Service. | *None* |
+| `POST` | `/api/notifications` | Schedules a new notification. | `{"message": "Task deadline approaching", "scheduledAt": "2026-11-10T09:00:00Z"}` |
+| `POST` | `/api/notifications/test` | **Triggers an immediate test alert** sent via Telegram bot. | `{"message": "TikTo manual test alert"}` |
+| `DELETE` | `/api/notifications/:id` | Cancels a notification by ID. | *None* |
+
+---
+
+## 🧪 Testing & Code Quality
 
 ```bash
-npm test          # Chạy unit tests và kiểm tra độ phủ (coverage)
-npm run lint      # Kiểm tra lỗi cú pháp và format với ESLint
-npm run check     # Chạy toàn bộ format, lint, test và kiểm tra cú pháp
+# Run unit tests with code coverage (c8 + node:test)
+npm test
+
+# Check code formatting and linting
+npm run lint
+
+# Run all verification checks (format, lint, unit tests, syntax checks)
+npm run check
 ```
 
 ---
 
-## 🚀 CI/CD & Triển khai
+## 🚀 CI/CD & Deployment
 
-Workflows sử dụng bộ workflow dùng chung từ `tikto-calender/reusable-workflow`.
+Workflows in this repository reference shared GitHub Actions from `tikto-calender/reusable-workflow`.
 
-* **Nhánh `dev`**: Tự động build Docker Image và cập nhật manifest vào GitOps repository.
-* **Môi trường Prod (EKS)**: Gắn tag release `vMAJOR.MINOR.PATCH` để kích hoạt workflow thăng cấp lên Production qua Argo CD.
+* **Development (`dev`)**: Commits pushed to `dev` build immutable Docker images tagged with `sha-<commit>` and push updates to the GitOps repository.
+* **Production (`prod`)**: Tagged releases (`vX.Y.Z`) promote verified development images to the Production overlay, triggering automated sync via Argo CD.

@@ -3,6 +3,10 @@ on:
   pull_request:
     branches:
       - dev
+      - feat/*
+    paths:
+      
+
 permissions:
   contents: read
 concurrency:

@@ -1,7 +1,14 @@
 name: Deploy development
 on:
   push:
-    branches: [dev, "feat/**"]
+    branches:
+      - dev
+    paths:
+      - 'dockerfile'
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/cd.yml'
   workflow_dispatch:
 
 permissions:
