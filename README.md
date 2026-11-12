@@ -32,4 +32,4 @@ Check [system status](http://localhost:3000/api/status) or use **Test notificati
 
 ## Deployment
 
-Qualifying pushes to `dev` build a GHCR image and record its digest in Manifest. Verify Dev before running [Promote Backend (blue/green)](https://github.com/tikto-calender/manifest#promote-backend). Run **Finalize release** after checking Prod.
+Qualifying pushes to `dev` build a GHCR image and record its digest in Manifest. Verify Dev, then run [Promote Backend](https://github.com/tikto-calender/manifest#promote-backend) to roll out the same digest in Prod. Run **Finalize release** after checking Prod.
