@@ -1,4 +1,6 @@
 .git
+.github
+coverage
 node_modules
-npm-debug.log*
-data/*.tmp
+npm-debug.log
+test

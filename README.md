@@ -1,25 +1,35 @@
 # TikTo Backend
 
-Express API for tasks, events, runtime health and Notification Service integration. It does not serve frontend assets.
+Express API for TikTo Calendar. It stores tasks and events in a local JSON file or DynamoDB and forwards notification requests to [Notification Service](https://github.com/tikto-calender/notification-service).
 
-## Local development
+## Run locally
 
-```bash
-npm install
+Use Node.js 24 or Node.js 22.13+ on the 22.x line. From the repo root on Linux, macOS or Windows:
+
+```sh
+npm ci
 npm run dev
 ```
 
-The API listens on `http://localhost:3000`. Copy `.env.example` values into your environment when you need DynamoDB or Notification Service; Node does not load `.env` automatically in this project.
+Open [API health](http://localhost:3000/api/health) or [runtime details](http://localhost:3000/api/runtime) to check the version. Local data is stored in `data/store.json`.
 
-## Storage
+To demo notifications, start Notification Service on port 8000, then restart Backend with the service URL.
 
-- `STORE_BACKEND=local`: stores data in `data/store.json`.
-- `STORE_BACKEND=dynamodb`: uses `DYNAMODB_TABLE` through the AWS SDK default credential chain.
+**Linux/macOS**
 
-On EKS, the `tikto-app` ServiceAccount receives temporary credentials through EKS Pod Identity. Do not add static AWS keys to the image or Kubernetes Secrets.
+```sh
+NOTIFICATION_SERVICE_URL=http://localhost:8000 npm run dev
+```
 
-## API groups
+**Windows PowerShell**
 
-- System: `/api/health`, `/api/runtime`, `/api/status`
-- Planner: `/api/overview`, `/api/tasks`, `/api/events`
-- Notifications: `/api/notifications`, `/api/notifications/test`
+```powershell
+$env:NOTIFICATION_SERVICE_URL = 'http://localhost:8000'
+npm run dev
+```
+
+Check [system status](http://localhost:3000/api/status) or use **Test notification** in the Frontend dashboard. Run `npm test` to run the tests.
+
+## Deployment
+
+Qualifying pushes to `dev` build a GHCR image and record its digest in Manifest. Verify Dev before running [Promote Backend (blue/green)](https://github.com/tikto-calender/manifest#promote-backend). Run **Finalize release** after checking Prod.

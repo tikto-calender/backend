@@ -19,7 +19,8 @@ export function createApp() {
 
   app.use((error, _request, response, _next) => {
     const status = Number.isInteger(error?.status) ? error.status : 400;
-    const message = error instanceof SyntaxError ? "JSON không hợp lệ." : error.message;
+    const message =
+      error instanceof SyntaxError ? "JSON không hợp lệ." : error.message;
     response.status(status).json({ error: message || "Request failed." });
   });
 

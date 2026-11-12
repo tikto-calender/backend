@@ -1,7 +1,7 @@
 name: CI
 on:
   pull_request:
-    branches: [dev]
+    branches: [dev, "feat/*"]
     paths:
       - ".github/workflows/**"
       - "Dockerfile"
@@ -40,7 +40,7 @@ concurrency:
 
 jobs:
   quality:
-    uses: tikto-calender/reusable-workflow/.github/workflows/ci-node.yml@dbdf77356c14e76c1320f334cd0c18fcff47b659
+    uses: tikto-calender/reusable-workflow/.github/workflows/ci-node.yml@main
     with:
       install-command: npm ci --ignore-scripts
       build-command: npm run syntax
